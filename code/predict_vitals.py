@@ -1,15 +1,15 @@
-import tensorflow as tf
+
+import argparse
+
 import numpy as np
 import scipy.io
-import os
-import sys
-import argparse
-sys.path.append('../')
-from model import Attention_mask, MTTS_CAN
-import h5py
-import matplotlib.pyplot as plt
 from scipy.signal import butter
+from matplotlib import pyplot as plt, ticker
+
+
+from model import MTTS_CAN
 from inference_preprocess import preprocess_raw_video, detrend
+
 
 def predict_vitals(args):
     img_rows = 36
@@ -42,9 +42,21 @@ def predict_vitals(args):
     resp_pred = scipy.signal.filtfilt(b_resp, a_resp, np.double(resp_pred))
 
     ########## Plot ##################
-    plt.subplot(211)
-    plt.plot(pulse_pred)
-    plt.title('Pulse Prediction')
+    ax = plt.subplot(211)
+    # fig, ax = plt.subplots()
+    # ax.plot(ac[:2 * args.max_lag * downsample_rate])
+    # repeat_msg = f"Non-repeating section length: {repeat_period}s"
+    # ax.set(title=f'Auto-correlation {noise_category}\n{repeat_msg}', xlabel='Lag (secs)')
+    # ticks_x = ticker.FuncFormatter(lambda x, pos: '{0:d}'.format(int(x / downsample_rate)))
+    # ax.xaxis.set_major_formatter(ticks_x)
+    # if args.output_dir is not None:
+    #     plt.savefig(f"{args.output_dir}/autocorrel.png")
+    # if args.plot:
+    #     plt.show()
+    ax.plot(pulse_pred)
+    ax.set(title='Pulse Prediction', xlabel='s')
+    ticks_x = ticker.FuncFormatter(lambda x, pos: '{0:d}'.format(int(x / args.sampling_rate)))
+    ax.xaxis.set_major_formatter(ticks_x)
     plt.subplot(212)
     plt.plot(resp_pred)
     plt.title('Resp Prediction')
@@ -55,8 +67,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--video_path', type=str, help='processed video path')
-    parser.add_argument('--sampling_rate', type=int, default = 30, help='sampling rate of your video')
-    parser.add_argument('--batch_size', type=int, default = 100, help='batch size (multiplier of 10)')
+    parser.add_argument('--sampling_rate', type=int, default=30, help='sampling rate of your video')
+    parser.add_argument('--batch_size', type=int, default=100, help='batch size (multiplier of 10)')
     args = parser.parse_args()
 
     predict_vitals(args)
