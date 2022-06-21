@@ -17,10 +17,9 @@ def predict_vitals(args):
     frame_depth = 10
     model_checkpoint = './mtts_can.hdf5'
     batch_size = args.batch_size
-    fs = args.sampling_rate
     sample_data_path = args.video_path
 
-    dXsub = preprocess_raw_video(sample_data_path, dim=36)
+    dXsub, fs = preprocess_raw_video(sample_data_path, dim=36, max_duration=args.max_duration)
     print('dXsub shape', dXsub.shape)
 
     dXsub_len = (dXsub.shape[0] // frame_depth)  * frame_depth
@@ -55,7 +54,7 @@ def predict_vitals(args):
     #     plt.show()
     ax.plot(pulse_pred)
     ax.set(title='Pulse Prediction', xlabel='s')
-    ticks_x = ticker.FuncFormatter(lambda x, pos: '{0:d}'.format(int(x / args.sampling_rate)))
+    ticks_x = ticker.FuncFormatter(lambda x, pos: '{0:d}'.format(int(x / fs)))
     ax.xaxis.set_major_formatter(ticks_x)
     plt.subplot(212)
     plt.plot(resp_pred)
@@ -67,7 +66,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--video_path', type=str, help='processed video path')
-    parser.add_argument('--sampling_rate', type=int, default=30, help='sampling rate of your video')
+    parser.add_argument('--max_duration', type=int, help='maximum duration to process')
     parser.add_argument('--batch_size', type=int, default=100, help='batch size (multiplier of 10)')
     args = parser.parse_args()
 

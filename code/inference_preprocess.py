@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.sparse import spdiags
 
 
-def preprocess_raw_video(videoFilePath, dim=36):
+def preprocess_raw_video(videoFilePath, dim=36, max_duration=30):
 
     #########################################################################
     # set up
@@ -22,20 +22,22 @@ def preprocess_raw_video(videoFilePath, dim=36):
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         cap.set(cv2.CAP_PROP_FPS, 60)
         frame_rate = cap.get(cv2.CAP_PROP_FPS)
-        totalFrames = int(frame_rate * 30)
+        max_frames = int(frame_rate * max_duration)  # Actual number of captured frames can  be less, if esc key hit while capturing
     else:
         cap = cv2.VideoCapture(videoFilePath)
-        totalFrames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) # get total frame size
-    Xsub = np.zeros((totalFrames, dim, dim, 3), dtype=np.float32)
+        frame_rate = cap.get(cv2.CAP_PROP_FPS)
+        max_frames = min(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), max_duration * frame_rate)
+    Xsub = np.zeros((max_frames, dim, dim, 3), dtype=np.float32)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     success, img = cap.read()
     dims = img.shape
     print("Orignal Height", height)
     print("Original width", width)
+    print("Frame Rate", frame_rate)
     #########################################################################
     # Crop each frame size into dim x dim
-    while success and i < totalFrames:
+    while success and i < max_frames:
         t.append(cap.get(cv2.CAP_PROP_POS_MSEC))  # current timestamp in milisecond
         vidLxL = cv2.resize(img_as_float(img[:, int(width/2)-int(height/2 + 1):int(height/2)+int(width/2), :]), (dim, dim), interpolation=cv2.INTER_AREA)
         vidLxL = cv2.rotate(vidLxL, cv2.ROTATE_90_CLOCKWISE)  # rotate 90 degree
@@ -66,7 +68,7 @@ def preprocess_raw_video(videoFilePath, dim=36):
     # Normalize raw frames in the apperance branch
     Xsub = Xsub - np.mean(Xsub)
     Xsub = Xsub  / np.std(Xsub)
-    Xsub = Xsub[:totalFrames-1, :, :, :]
+    Xsub = Xsub[:max_frames-1, :, :, :]
 
     #########################################################################
     # Plot an example of data after preprocess
@@ -74,7 +76,7 @@ def preprocess_raw_video(videoFilePath, dim=36):
     # plt.title('Sample Preprocessed Frame')
     # plt.show()
     dXsub = np.concatenate((dXsub, Xsub), axis=3)
-    return dXsub
+    return dXsub, frame_rate
 
 
 def detrend(signal, Lambda):
