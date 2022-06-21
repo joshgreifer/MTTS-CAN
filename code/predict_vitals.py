@@ -19,25 +19,28 @@ def predict_vitals(args):
     batch_size = args.batch_size
     sample_data_path = args.video_path
 
-    dXsub, fs = preprocess_raw_video(sample_data_path, dim=36, max_duration=args.max_duration)
-    print('dXsub shape', dXsub.shape)
+    diffs_and_frames, fs = preprocess_raw_video(sample_data_path, dim=36, max_duration=args.max_duration)
+    print('diffs_and_frames shape', diffs_and_frames.shape)
 
-    dXsub_len = (dXsub.shape[0] // frame_depth)  * frame_depth
-    dXsub = dXsub[:dXsub_len, :, :, :]
+    data_len = (diffs_and_frames.shape[0] // frame_depth)  * frame_depth
+    diffs_and_frames = diffs_and_frames[:data_len, :, :, :]
 
     model = MTTS_CAN(frame_depth, 32, 64, (img_rows, img_cols, 3))
     model.load_weights(model_checkpoint)
 
-    yptest = model.predict((dXsub[:, :, :, :3], dXsub[:, :, :, -3:]), batch_size=batch_size, verbose=1)
+    diffs = diffs_and_frames[:, :, :, :3]
+    normalized_frames = diffs_and_frames[:, :, :, -3:]
+    input_as_tuple = (diffs, normalized_frames)
+    yptest = model.predict(input_as_tuple, batch_size=batch_size, verbose=1)
 
     pulse_pred = yptest[0]
     pulse_pred = detrend(np.cumsum(pulse_pred), 100)
-    [b_pulse, a_pulse] = butter(1, [0.75 / fs * 2, 2.5 / fs * 2], btype='bandpass')
+    [b_pulse, a_pulse] = butter(1, [0.75 / fs * 2, 2.5 / fs], btype='bandpass')
     pulse_pred = scipy.signal.filtfilt(b_pulse, a_pulse, np.double(pulse_pred))
 
     resp_pred = yptest[1]
     resp_pred = detrend(np.cumsum(resp_pred), 100)
-    [b_resp, a_resp] = butter(1, [0.08 / fs * 2, 0.5 / fs * 2], btype='bandpass')
+    [b_resp, a_resp] = butter(1, [0.08 / fs * 2, 0.5 / fs], btype='bandpass')
     resp_pred = scipy.signal.filtfilt(b_resp, a_resp, np.double(resp_pred))
 
     ########## Plot ##################
