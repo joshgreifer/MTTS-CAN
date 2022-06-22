@@ -48,7 +48,7 @@ def preprocess_raw_video(video_file_path, dim=36, max_duration=30):
         success, img = cap.read() # read the next one
         if video_file_path is None:
             cv2.imshow(f'Seconds remaining:', img)
-            cv2.setWindowTitle(f'Seconds remaining:', f'([Esc] to interrupt) Seconds remaining: {max_duration - i // frame_rate}')
+            cv2.setWindowTitle(f'Seconds remaining:', f'([Esc] to interrupt) Seconds rem: {max_duration - i // frame_rate}')
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
